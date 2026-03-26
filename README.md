@@ -47,8 +47,8 @@ This project is adapted from [M5Mp3 by VolosR](https://github.com/VolosR/M5Mp3).
 ## Usage
 
 - **Play/Pause:** Press `A` or `ENTER`
-- **Next Track:** Press `N` or `.`
-- **Previous Track:** Press `P` or `;`
+- **Next Track:** Press `N` or `.`(Arrow Down)
+- **Previous Track:** Press `P` or `;`(Arrow Up)
 - **Random Track:** Press `B`
 - **Volume:** Press `V` or adjust slider
 - **Brightness:** Press `L` or adjust slider
