@@ -16,7 +16,7 @@ This project is adapted from [M5Mp3 by VolosR](https://github.com/VolosR/M5Mp3).
 - Uses `M5Cardputer.Speaker` (ES8311) instead of I2S
 - Custom `AudioOutput` class for M5Cardputer
 - Removed `ESP32Time` dependency (uses `millis()`)
-- Added ES8311 audio codec support
+
 
 ---
 
