@@ -1,3 +1,36 @@
+ M5Mp3 Winamp-style MP3 Player for M5Stack Cardputer-Adv
+ * 
+ * ============================================================================
+ * CREDITS
+ * ============================================================================
+ * 
+ * This project is adapted from the original M5Mp3 by VolosR:
+ * - Original Project: https://github.com/VolosR/M5Mp3
+ * - Original Author: VolosR
+ * - License: Same as original M5Mp3 project
+ * 
+ * Many thanks to VolosR for creating the original Winamp-style interface
+ * and audio playback implementation!
+ * 
+ * ============================================================================
+ * CHANGES FROM ORIGINAL
+ * ============================================================================
+ * 
+ * - Replaced ESP32-audioI2S with ESP8266Audio
+ * - Uses M5Cardputer.Speaker (ES8311) instead of I2S
+ * - Custom AudioOutput class for M5Cardputer
+ * - Removed ESP32Time dependency (uses millis() instead)
+ * - Added ES8311 audio codec support
+ * 
+ * ============================================================================
+ * LIBRARIES REQUIRED
+ * ============================================================================
+ * 
+ * - ESP8266Audio (https://github.com/earlephilhower/ESP8266Audio)
+ * - M5Cardputer (included with M5Stack board support)
+ * Thanks to Andy (AndyAiCardputer) who created the groundwork for this Fork.
+ */
+     
 #include <SPI.h>
 #include <FS.h>
 #include <SD.h>
