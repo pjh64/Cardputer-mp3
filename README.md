@@ -23,7 +23,6 @@ This project is adapted from [M5Mp3 by VolosR](https://github.com/VolosR/M5Mp3).
 - MP3 playback from microSD card
 - Volume, brightness, and track controls
 - Playlist navigation and random track selection
-- Real-time audio spectrum analyzer
 
 ---
 
