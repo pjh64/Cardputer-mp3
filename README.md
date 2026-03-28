@@ -23,7 +23,7 @@ This project is adapted from [M5Mp3 by VolosR](https://github.com/VolosR/M5Mp3).
 - MP3 playback from microSD card
 - Volume, brightness, and track controls
 - Playlist navigation and random track selection
-
+- Fast forward / Rewind
 ---
 
 ## Hardware Setup
@@ -42,7 +42,7 @@ This project is adapted from [M5Mp3 by VolosR](https://github.com/VolosR/M5Mp3).
 - Volume: Press `V` or adjust slider
 - Brightness: Press `L` or adjust slider
 - Set cursor: Left/Right Arrow Key, up/down to select slider / button
-- Seek-Slider:** Use `-` to roll back`+` to Fast forward
+- Seek-Slider:** Use `-` to rewind `+` to Fast forward
 
 
 ---
