@@ -103,7 +103,7 @@ private:
 struct AudioCommand {
     enum Type { SEEK, VOLUME, PLAY, PAUSE, NEXT, PREV, RANDOM };
     Type type;
-    int value; // e.g., seek position, volume level, track index
+    int value;
 };
 QueueHandle_t audioCommandQueue;
 
@@ -125,7 +125,6 @@ M5Canvas spr(&M5Cardputer.Display);
 // --- FFT Parameters ---
 #define SAMPLING_FREQUENCY 44100
 #define FFT_SIZE 128
-#define FFT_AVERAGING 128
 #define FFT_WINDOW_X 170
 #define FFT_WINDOW_Y 40
 #define FFT_WINDOW_WIDTH 65
@@ -151,7 +150,7 @@ public:
     int currentTrack = 0;
     int seekValue = 0;
     unsigned long seekPosition = 0;
-    unsigned long trackDuration = 180000; // Default: 3 minutes in milliseconds
+    unsigned long trackDuration = 180000;
     bool isPlaying = true;
     bool isStopped = false;
     bool nextTrackRequested = false;
@@ -261,7 +260,9 @@ public:
         sprite.drawString(label, _x + _width/2, _y + _height/2);
     }
 
-    void setActive(bool active) override { isActive = active; }
+    void setActive(bool active) override {
+        isActive = active;
+    }
 
     void increment() override {
         if (state) *state = !*state;
@@ -291,7 +292,11 @@ public:
     void draw(M5Canvas &sprite) override {
         sprite.fillRoundRect(_x, _y, _width, _height, 2, 0x5AEB);
         int knobPos = map(*value, minVal, maxVal, _x, _x + _width);
-        sprite.fillRoundRect(knobPos - 5, _y - 2, 10, _height + 4, 2, 0x2104);
+        sprite.fillRoundRect(knobPos - 5, _y - 2, 10, _height + 4, 2, isActive ? WHITE : 0x2104);
+    }
+
+    void setActive(bool active) override {
+        isActive = active;
     }
 
     void setValue(int newValue) {
@@ -315,6 +320,7 @@ protected:
     int _x, _y, _width, _height;
     int minVal, maxVal;
     int *value;
+    bool isActive = false;
 };
 
 class SeekSlider : public Slider {
@@ -432,47 +438,34 @@ String getTimeString() {
 }
 
 // --- Audio Functions ---
-// Estimate track duration from file size (assuming 128 kbps)
 unsigned long estimateTrackDuration(const String& filePath) {
     File mp3File = SD.open(filePath);
     if (!mp3File) {
         Serial.println("Failed to open file for duration estimation");
-        return 180000; // Default: 3 minutes
+        return 180000;
     }
     unsigned long fileSize = mp3File.size();
     mp3File.close();
-    // Estimate duration: fileSize (bytes) / bitrate (16000 bytes/sec) * 1000 (ms)
     unsigned long duration = (fileSize / 16000) * 1000;
-    return duration > 0 ? duration : 180000; // Fallback to 3 minutes
+    return duration > 0 ? duration : 180000;
 }
 
-// Accurate seeking with file size constraint and debug logging
 void seekToPosition(uint32_t ms) {
     if (!file || !mp3 || !mp3->isRunning()) return;
-
-    // Stop current playback
     mp3->stop();
     delete mp3;
     delete file;
-
-    // Reopen the file and get its size
     File mp3File = SD.open(audioFiles[playerState.currentTrack]);
     uint32_t fileSize = mp3File.size();
     mp3File.close();
-
-    // Reopen the file for playback
     file = new AudioFileSourceSD(audioFiles[playerState.currentTrack].c_str());
-    uint32_t bytesToSkip = constrain((ms * 16000) / 1000, 0, fileSize); // 128 kbps = 16000 bytes/second
+    uint32_t bytesToSkip = constrain((ms * 16000) / 1000, 0, fileSize);
     Serial.printf("Seeking to %ums, bytesToSkip=%u, fileSize=%u\n", ms, bytesToSkip, fileSize);
     file->seek(bytesToSkip, SeekSet);
-
-    // Restart playback
     mp3 = new AudioGeneratorMP3();
     mp3->begin(file, out);
-
-    // Update seek position and reset timer
     playerState.seekPosition = constrain(ms, 0, playerState.trackDuration);
-    trackStartTime = millis();  // Reset timer to current time
+    trackStartTime = millis();
 }
 
 void loadTrack(int trackIndex) {
@@ -483,17 +476,11 @@ void loadTrack(int trackIndex) {
     if (file) {
         delete file;
     }
-
-    // Estimate track duration
     playerState.trackDuration = estimateTrackDuration(audioFiles[trackIndex]);
     Serial.printf("Track %d duration: %ums\n", trackIndex, playerState.trackDuration);
-
-    // Load the track
     file = new AudioFileSourceSD(audioFiles[trackIndex].c_str());
     mp3 = new AudioGeneratorMP3();
     mp3->begin(file, out);
-
-    // Reset seek position and timer
     playerState.seekPosition = 0;
     trackStartTime = millis();
 }
@@ -654,15 +641,35 @@ void drawRandomButton(M5Canvas &sprite) {
 
 void drawCursor(M5Canvas &sprite) {
     if (playerState.cursorOnRight) {
+        playButton.setActive(false);
+        prevButton.setActive(false);
+        nextButton.setActive(false);
+        randomButton.setActive(false);
+        seekSlider.setActive(false);
+        volumeSlider.setActive(false);
+        brightnessSlider.setActive(false);
+
         switch (playerState.activeControl) {
             case PlayerState::SEEK:
-                ::drawCursor(sprite, seekSlider.getX(), seekSlider.getY(), seekSlider.getWidth(), seekSlider.getHeight());
+                seekSlider.setActive(true);
+                {
+                    int knobPos = map(playerState.seekValue, 0, 100, seekSlider.getX(), seekSlider.getX() + seekSlider.getWidth());
+                    ::drawCursor(sprite, knobPos - 5, seekSlider.getY() - 2, 10, seekSlider.getHeight() + 4);
+                }
                 break;
             case PlayerState::VOLUME:
-                ::drawCursor(sprite, volumeSlider.getX(), volumeSlider.getY(), volumeSlider.getWidth(), volumeSlider.getHeight());
+                volumeSlider.setActive(true);
+                {
+                    int knobPos = map(playerState.volume, 0, 20, volumeSlider.getX(), volumeSlider.getX() + volumeSlider.getWidth());
+                    ::drawCursor(sprite, knobPos - 5, volumeSlider.getY() - 2, 10, volumeSlider.getHeight() + 4);
+                }
                 break;
             case PlayerState::BRIGHTNESS:
-                ::drawCursor(sprite, brightnessSlider.getX(), brightnessSlider.getY(), brightnessSlider.getWidth(), brightnessSlider.getHeight());
+                brightnessSlider.setActive(true);
+                {
+                    int knobPos = map(playerState.brightnessIndex, 0, 4, brightnessSlider.getX(), brightnessSlider.getX() + brightnessSlider.getWidth());
+                    ::drawCursor(sprite, knobPos - 5, brightnessSlider.getY() - 2, 10, brightnessSlider.getHeight() + 4);
+                }
                 break;
             case PlayerState::BUTTON_A:
                 playButton.setActive(true);
@@ -719,7 +726,6 @@ void draw() {
 // --- Audio Task ---
 void Task_Audio(void *pvParameters) {
     while (1) {
-        // Handle volume updates
         if (playerState.volumeUpdated) {
             xSemaphoreTake(stateMutex, portMAX_DELAY);
             uint8_t m5Volume = map(playerState.volume, 0, 20, 0, 255);
@@ -728,7 +734,6 @@ void Task_Audio(void *pvParameters) {
             xSemaphoreGive(stateMutex);
         }
 
-        // Handle audio commands from the queue
         AudioCommand cmd;
         if (xQueueReceive(audioCommandQueue, &cmd, 0) == pdTRUE) {
             xSemaphoreTake(stateMutex, portMAX_DELAY);
@@ -774,10 +779,8 @@ void Task_Audio(void *pvParameters) {
             xSemaphoreGive(stateMutex);
         }
 
-        // Playback loop
         if (mp3 && mp3->isRunning()) {
             if (!mp3->loop()) {
-                // End of track: only move to next if not seeking
                 if (!playerState.seekRequested) {
                     playerState.currentTrack++;
                     if (playerState.currentTrack >= audioFiles.size())
@@ -785,6 +788,32 @@ void Task_Audio(void *pvParameters) {
                     loadTrack(playerState.currentTrack);
                 }
                 playerState.seekRequested = false;
+            }
+        }
+
+        // --- FFT Computation ---
+        if (out && millis() - lastFFTTime > 50) {  // Update FFT every 50ms
+            lastFFTTime = millis();
+            const int16_t* audioBuffer = out->getBuffer();
+            if (audioBuffer) {
+                xSemaphoreTake(stateMutex, portMAX_DELAY);
+                // Fill vReal with audio samples (only real part for simplicity)
+                for (int i = 0; i < FFT_SIZE; i++) {
+                    vReal[i] = audioBuffer[i * 2] / 32768.0;  // Normalize to [-1, 1]
+                    vImag[i] = 0;
+                }
+                // DC Removal
+                FFT.dcRemoval(vReal, FFT_SIZE);
+                // Windowing (Hamming)
+                FFT.windowing(vReal, FFT_SIZE, FFTWindow::Hamming, FFTDirection::Forward);
+                // Compute FFT
+                FFT.compute(vReal, vImag, FFT_SIZE, FFTDirection::Forward);
+                // Calculate magnitudes for the first half of the spectrum
+                FFT.complexToMagnitude(vReal, vImag, FFT_SIZE);
+                for (int i = 0; i < FFT_SIZE / 2; i++) {
+                    fftOutput[i] = vReal[i];
+                }
+                xSemaphoreGive(stateMutex);
             }
         }
 
@@ -823,7 +852,7 @@ void Task_TFT(void *pvParameters) {
                     xSemaphoreTake(stateMutex, portMAX_DELAY);
                     switch (playerState.activeControl) {
                         case PlayerState::SEEK: {
-                            playerState.seekValue = constrain(playerState.seekValue - 5, 0, 100); // Larger steps for better control
+                            playerState.seekValue = constrain(playerState.seekValue - 5, 0, 100);
                             AudioCommand cmd = {AudioCommand::SEEK, playerState.seekValue};
                             xQueueSend(audioCommandQueue, &cmd, portMAX_DELAY);
                             break;
@@ -847,7 +876,7 @@ void Task_TFT(void *pvParameters) {
                     xSemaphoreTake(stateMutex, portMAX_DELAY);
                     switch (playerState.activeControl) {
                         case PlayerState::SEEK: {
-                            playerState.seekValue = constrain(playerState.seekValue + 5, 0, 100); // Larger steps for better control
+                            playerState.seekValue = constrain(playerState.seekValue + 5, 0, 100);
                             AudioCommand cmd = {AudioCommand::SEEK, playerState.seekValue};
                             xQueueSend(audioCommandQueue, &cmd, portMAX_DELAY);
                             break;
